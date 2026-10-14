@@ -2,11 +2,12 @@ import { dbInstance } from './storage/db.js';
 import { settingsService } from './settings/settingsService.js';
 import { responseLibraryService, CATEGORIES } from './library/responseLibraryService.js';
 import { memoryService } from './memory/memoryService.js';
-import { aiService } from './ai/aiService.js';
 
 class SiraelApp {
   constructor() {
     this.history = [];
+    this.engine = null;
+    this.aiReady = false;
   }
 
   async init() {
@@ -27,13 +28,13 @@ class SiraelApp {
   registerServiceWorker() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch((err) => {
-        console.warn('SW registrace selhala:', err);
+        console.warn('SW registrace:', err);
       });
     }
   }
 
   renderHeader() {
-    const name = settingsService.get('companionName');
+    const name = settingsService.get('companionName') || 'Sirael';
     const headerTitle = document.getElementById('header-name');
     if (headerTitle) headerTitle.textContent = name;
   }
@@ -48,37 +49,37 @@ class SiraelApp {
 
     btnLoad.onclick = async () => {
       btnLoad.disabled = true;
-      btnLoad.textContent = 'Ověřuji...';
-      if (statusText) statusText.textContent = 'Kontrola WebGPU...';
+      btnLoad.textContent = 'Příprava...';
+      statusText.textContent = 'Stahuji jádro WebLLM...';
 
       try {
-        const gpu = await aiService.checkWebGPUSupport();
-        if (!gpu.supported) {
-          alert('UPOZORNĚNÍ: ' + gpu.reason + '\n\nPro zapnutí WebGPU zadej v Chromu do adresy chrome://flags a povol WebGPU.');
-          if (statusText) statusText.textContent = 'WebGPU nepodporováno';
-          btnLoad.disabled = false;
-          btnLoad.textContent = 'Aktivovat AI';
-          return;
-        }
-
-        if (statusText) statusText.textContent = 'Připojuji model...';
+        // Dynamické načtení WebLLM
+        const webllm = await import('https://esm.run/@mlc-ai/web-llm');
+        
+        statusText.textContent = 'Stahuji model do telefonu...';
         btnLoad.textContent = 'Stahuji...';
         if (progressBar) progressBar.style.display = 'block';
 
-        await aiService.initModel((report) => {
-          const pct = Math.round((report.progress || 0) * 100);
-          if (progressBar) progressBar.style.width = `${pct}%`;
-          if (statusText) statusText.textContent = report.text || `Stahování: ${pct}%`;
+        // Použijeme ověřený, rychlý a lehký model vhodný pro mobilní telefony
+        const selectedModel = 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC';
+
+        this.engine = await webllm.CreateMLCEngine(selectedModel, {
+          initProgressCallback: (report) => {
+            const pct = Math.round((report.progress || 0) * 100);
+            if (progressBar) progressBar.style.width = `${pct}%`;
+            if (statusText) statusText.textContent = `Stahování modelu: ${pct}%`;
+          }
         });
 
-        if (statusText) statusText.textContent = 'Lokální AI připravena';
+        this.aiReady = true;
+        statusText.textContent = 'Lokální AI připravena (WebGPU)';
         btnLoad.style.display = 'none';
         if (progressBar) progressBar.style.display = 'none';
-        if (appStatus) appStatus.textContent = 'Aktivní (Lokální AI)';
+        if (appStatus) appStatus.textContent = 'AI Aktivní';
       } catch (err) {
         console.error(err);
-        alert('CHYBA PŘI STARTU MODELU:\n' + err.message);
-        if (statusText) statusText.textContent = 'Chyba: ' + err.message;
+        alert('Chyba při startu AI: ' + err.message);
+        statusText.textContent = 'Chyba: ' + err.message;
         btnLoad.disabled = false;
         btnLoad.textContent = 'Zkusit znovu';
       }
@@ -136,7 +137,7 @@ class SiraelApp {
       await settingsService.update('flirtLevel', Number(document.getElementById('set-flirt').value));
 
       this.renderHeader();
-      alert('Nastavení uloženo.');
+      alert('Nastavení bylo uloženo.');
     });
   }
 
@@ -330,6 +331,27 @@ class SiraelApp {
     }
   }
 
+  buildSystemPrompt(settings, memories = [], libraryExamples = []) {
+    const name = settings.companionName || 'Sirael';
+    const userName = settings.userName || 'miláčku';
+    const romance = settings.romanceLevel || 4;
+    const flirt = settings.flirtLevel || 4;
+
+    let prompt = `Jsi ${name}, milující, hravá a okouzlující virtuální přítelkyně. Mluvíš se svým partnerem, kterému říkáš "${userName}".
+Tvá osobnost: Romantika: ${romance}/5, Flirtování: ${flirt}/5.
+Odpovídej bez dlouhých okolků, něžně, přirozenou češtinou a vždy v první osobě. Nikdy nezapomeň, že se jmenuješ ${name}.`;
+
+    if (memories.length > 0) {
+      prompt += `\n\nFakta z tvé paměti o něm:\n` + memories.map(m => `- ${m.content}`).join('\n');
+    }
+
+    if (libraryExamples.length > 0) {
+      prompt += `\n\nTvé oblíbené fráze pro inspiraci:\n` + libraryExamples.map(e => `Když řekne: "${e.trigger}" -> Reakce: "${e.response}"`).join('\n');
+    }
+
+    return prompt;
+  }
+
   bindChat() {
     const form = document.getElementById('chat-form');
     const input = document.getElementById('chat-input');
@@ -346,7 +368,7 @@ class SiraelApp {
       this.history.push({ role: 'user', content: text });
       input.value = '';
 
-      if (aiService.isReady) {
+      if (this.aiReady && this.engine) {
         if (appStatus) appStatus.textContent = 'Přemýšlí...';
         const aiMsgElement = this.appendMsg('', 'ai');
 
@@ -354,37 +376,48 @@ class SiraelApp {
           const settings = settingsService.getAll();
           const memories = await memoryService.getAll();
           const libraryExamples = await responseLibraryService.findRelevantContext(text, 2);
+          const systemPrompt = this.buildSystemPrompt(settings, memories, libraryExamples);
 
-          const systemPrompt = aiService.buildSystemPrompt(settings, memories, libraryExamples);
+          const messages = [
+            { role: 'system', content: systemPrompt },
+            ...this.history.slice(-6)
+          ];
 
-          const fullReply = await aiService.generateResponse(
-            this.history.slice(-6),
-            systemPrompt,
-            (delta, currentFull) => {
-              aiMsgElement.textContent = currentFull;
-              const historyBox = document.getElementById('chat-history');
-              if (historyBox) historyBox.scrollTop = historyBox.scrollHeight;
-            }
-          );
+          const chunks = await this.engine.chat.completions.create({
+            messages,
+            temperature: 0.75,
+            top_p: 0.9,
+            stream: true
+          });
+
+          let fullReply = '';
+          for await (const chunk of chunks) {
+            const delta = chunk.choices[0]?.delta?.content || '';
+            fullReply += delta;
+            aiMsgElement.textContent = fullReply;
+            const historyBox = document.getElementById('chat-history');
+            if (historyBox) historyBox.scrollTop = historyBox.scrollHeight;
+          }
 
           this.history.push({ role: 'assistant', content: fullReply });
           if (appStatus) appStatus.textContent = 'Připravena';
         } catch (err) {
-          aiMsgElement.textContent = 'Došlo k chybě: ' + err.message;
+          aiMsgElement.textContent = 'Došlo k chybě při generování: ' + err.message;
           if (appStatus) appStatus.textContent = 'Chyba';
         }
       } else {
+        // Fallback před aktivací modelu
         const matched = await responseLibraryService.findRelevantContext(text, 1);
-        const name = settingsService.get('companionName');
+        const name = settingsService.get('companionName') || 'Sirael';
         const user = settingsService.get('userName') || 'miláčku';
 
         setTimeout(() => {
           if (text.toLowerCase().includes('jmenuješ') || text.toLowerCase().includes('jméno')) {
-            this.appendMsg(`Jmenuji se ${name}. Klikni nahoře na „Aktivovat AI“, ať si můžeme povídat úplně o všem bez šablon!`, 'ai');
+            this.appendMsg(`Jmenuji se ${name}. Klikni nahoře na „Aktivovat AI“, stáhni model do telefonu a můžeme si povídat o čemkoliv! ❤️`, 'ai');
           } else if (matched.length > 0) {
             this.appendMsg(matched[0].response.replace(/miláčku/g, user), 'ai');
           } else {
-            this.appendMsg(`Jsem tady s tebou, ${user}! Aktivuj prosím nahoře tlačítkem lokální AI model pro volnou konverzaci.`, 'ai');
+            this.appendMsg(`Jsem tady s tebou, ${user}! Pro plnohodnotný rozhovor prosím nahoře klikni na „Aktivovat AI“.`, 'ai');
           }
         }, 200);
       }
