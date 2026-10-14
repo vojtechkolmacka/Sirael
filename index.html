@@ -2,194 +2,208 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Sirael</title>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#d84f88">
-  <style>
-    :root {
-      --bg: #111017;
-      --card: #1c1a26;
-      --card-border: #2c283d;
-      --primary: #d84f88;
-      --primary-hover: #f0629a;
-      --text: #f3f2f8;
-      --text-muted: #9e9bb0;
-      --radius: 14px;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    body { background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; }
-
-    /* Navigační panel */
-    header { background: var(--card); border-bottom: 1px solid var(--card-border); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
-    .status-badge { font-size: 0.8rem; padding: 4px 10px; border-radius: 20px; background: #2a2538; color: var(--primary); font-weight: 600; display: flex; align-items: center; gap: 6px; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #4caf50; }
-
-    /* Hlavní obsah */
-    main { flex: 1; padding: 16px; max-width: 600px; margin: 0 auto; width: 100%; padding-bottom: 80px; }
-    .view { display: none; }
-    .view.active { display: block; }
-
-    /* Avatar & Chat karta */
-    .avatar-hero { text-align: center; margin-bottom: 16px; }
-    .avatar-circle { width: 96px; height: 96px; border-radius: 50%; border: 3px solid var(--primary); margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; background: #262135; font-size: 2.2rem; }
-    .friend-name { font-size: 1.4rem; font-weight: 700; }
-
-    .chat-box { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 14px; min-height: 220px; max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
-    .msg { padding: 8px 12px; border-radius: 10px; font-size: 0.95rem; max-width: 80%; line-height: 1.4; }
-    .msg.sirael { background: #2a2235; border: 1px solid var(--primary); align-self: flex-start; }
-    .msg.user { background: var(--primary); color: #fff; align-self: flex-end; }
-
-    /* Vstup chatu */
-    .chat-controls { display: flex; gap: 8px; }
-    input[type="text"], textarea, select { width: 100%; padding: 12px; background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); color: #fff; font-size: 1rem; }
-    input[type="text"]:focus, textarea:focus, select:focus { outline: 1px solid var(--primary); }
-    button { background: var(--primary); color: #fff; border: none; border-radius: var(--radius); padding: 12px 18px; font-weight: 600; cursor: pointer; transition: 0.2s; }
-    button:active { transform: scale(0.97); }
-    button.secondary { background: #2b273b; border: 1px solid var(--card-border); }
-
-    /* Karty a seznamy */
-    .card { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
-    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .badge { font-size: 0.75rem; background: #3b2c44; color: var(--primary); padding: 3px 8px; border-radius: 6px; }
-
-    /* Spodní záložková lišta */
-    nav.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--card-border); display: flex; justify-content: space-around; padding: 10px 0; z-index: 20; }
-    .nav-btn { background: none; border: none; color: var(--text-muted); font-size: 0.75rem; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 12px; }
-    .nav-btn.active { color: var(--primary); }
-  </style>
+  <meta name="theme-color" content="#ff4d6d">
+  <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 
   <header>
-      <!-- LIŠTA STAVU MODELU A WEBGPU -->
-  <div id="ai-status-banner" style="background:#1f212d; border-bottom:1px solid var(--border); padding:8px 16px; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center;">
-    <span id="ai-model-status">Lokální model nepřipojen</span>
-    <button id="btn-load-ai" class="btn" style="width:auto; padding:4px 10px; font-size:0.75rem; margin:0;">Aktivovat AI</button>
-  </div>
-  <div id="ai-progress-bar" style="display:none; height:3px; background:var(--accent); width:0%; transition:width 0.2s;"></div>
-
-    <div style="font-weight: 700; font-size: 1.1rem;" id="headerName">Sirael</div>
-    <div class="status-badge">
-      <div class="status-dot"></div>
-      <span id="systemStatus">Připravena</span>
+    <div class="avatar-badge">
+      <div class="avatar-circle">💋</div>
+      <div>
+        <h2 id="header-name" style="font-size:1.1rem;">Sirael</h2>
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span id="app-status">Připravena</span>
+        </div>
+      </div>
     </div>
   </header>
 
+  <!-- LIŠTA STAVU MODELU POD HLAVIČKOU S DIAGNOSTIKOU -->
+  <div id="ai-status-banner" style="background:#1f212d; border-bottom:1px solid var(--border); padding:8px 16px; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center; width:100%;">
+    <span id="ai-model-status">Lokální model nepřipojen</span>
+    <button id="btn-load-ai" class="btn" style="width:auto; padding:6px 14px; font-size:0.8rem; margin:0; z-index:10;" onclick="spustitTestAI()">Aktivovat AI</button>
+  </div>
+  <div id="ai-progress-bar" style="display:none; height:3px; background:var(--accent); width:0%; transition:width 0.2s;"></div>
+
   <main>
-    <!-- ZÁLOŽKA 1: CHAT / HLAVNÍ -->
-    <section id="view-chat" class="view active">
-      <div class="avatar-hero">
-        <div class="avatar-circle">💖</div>
-        <div class="friend-name" id="displayHeroName">Sirael</div>
-      </div>
-
-      <div class="chat-box" id="chatHistory">
-        <!-- Zprávy se plní dynamicky -->
-      </div>
-
-      <div class="chat-controls">
-        <input type="text" id="chatInput" placeholder="Napiš zprávu...">
-        <button id="btnSend">Odeslat</button>
+    <!-- ZÁLOŽKA 1: CHAT -->
+    <section id="view-chat" class="tab-view active">
+      <div class="chat-container">
+        <div id="chat-history" class="chat-history">
+          <div class="msg ai">Ahoj! Jsem ráda, že jsme spolu. Můžeš si v nastavení upravit mé jméno, prozkoumat mou paměť nebo přidat nové reakce do knihovny. ❤️</div>
+        </div>
+        <form id="chat-form" class="chat-input-bar">
+          <input type="text" id="chat-input" placeholder="Napiš zprávu..." autocomplete="off">
+          <button type="submit" class="btn">Odeslat</button>
+        </form>
       </div>
     </section>
 
     <!-- ZÁLOŽKA 2: KNIHOVNA ODPOVĚDÍ -->
-    <section id="view-library" class="view">
-      <h2 style="margin-bottom: 12px;">Knihovna odpovědí</h2>
+    <section id="view-library" class="tab-view">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3>Knihovna odpovědí</h3>
+        <button id="btn-add-lib" class="btn" style="width:auto; padding:6px 14px;">+ Přidat</button>
+      </div>
       
-      <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-        <input type="text" id="libSearch" placeholder="Hledat spouštěč nebo odpověď...">
-        <select id="libFilterCategory" style="max-width: 140px;">
-          <option value="">Všechny</option>
-          <option value="Romantika a něha">Romantika</option>
-          <option value="Flirt">Flirt</option>
-          <option value="Humor">Humor</option>
-          <option value="Běžný rozhovor">Běžný</option>
-          <option value="Intimní témata pro dospělé">Intimní</option>
+      <input type="text" id="lib-search" placeholder="Hledat v názvech, spouštěčích a štítcích...">
+      
+      <div class="filter-row">
+        <select id="lib-filter-cat">
+          <option value="all">Všechny kategorie</option>
         </select>
       </div>
 
-      <button id="btnOpenNewItemModal" style="width: 100%; margin-bottom: 16px;">+ Přidat novou odpověď</button>
+      <div id="lib-items"></div>
 
-      <!-- Formulář pro novou položku -->
-      <div id="modalNewItem" class="card" style="display: none;">
-        <h3 style="margin-bottom: 10px;">Nová situace / odpověď</h3>
-        <input type="text" id="newTitle" placeholder="Název (např. Návrat z práce)" style="margin-bottom: 8px;">
-        <input type="text" id="newTrigger" placeholder="Spouštěč (např. Když přijdu domů)" style="margin-bottom: 8px;">
-        <select id="newCategory" style="margin-bottom: 8px;">
-          <option value="Romantika a něha">Romantika a něha</option>
-          <option value="Flirt">Flirt</option>
-          <option value="Humor">Humor</option>
-          <option value="Běžný rozhovor">Běžný rozhovor</option>
-          <option value="Intimní témata pro dospělé">Intimní témata pro dospělé</option>
-        </select>
-        <textarea id="newResponse" rows="3" placeholder="Co má odpovědět..." style="margin-bottom: 8px;"></textarea>
-        <div style="display: flex; gap: 8px;">
-          <button id="btnSaveNewItem">Uložit položku</button>
-          <button id="btnCancelNewItem" class="secondary">Zrušit</button>
+      <div class="card" style="margin-top:20px;">
+        <label>Záloha a přenos dat</label>
+        <div class="btn-group">
+          <button id="btn-export-lib" class="btn btn-secondary">Export JSON</button>
+          <label class="btn btn-secondary" style="text-align:center; margin:0; line-height:2.4;">
+            Import JSON
+            <input type="file" id="lib-file-import" accept=".json" style="display:none;">
+          </label>
         </div>
       </div>
-
-      <div id="libraryList">
-        <!-- Karty knihovny se plní dynamicky -->
-      </div>
-
-      <hr style="border: 0; border-top: 1px solid var(--card-border); margin: 20px 0;">
-      <h3 style="margin-bottom: 8px; font-size: 1rem;">Zálohování knihovny</h3>
-      <div style="display: flex; gap: 8px;">
-        <button id="btnExportLib" class="secondary" style="flex: 1;">Export (JSON)</button>
-        <label class="secondary" style="flex: 1; padding: 12px; border-radius: var(--radius); text-align: center; border: 1px solid var(--card-border); cursor: pointer;">
-          Import
-          <input type="file" id="fileImportLib" accept=".json" style="display: none;">
-        </label>
-      </div>
     </section>
 
-    <!-- ZÁLOŽKA 3: PAMĚŤ -->
-    <section id="view-memory" class="view">
-      <h2 style="margin-bottom: 12px;">Osobní paměť</h2>
-      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">Uložená fakta a preference, které si o tobě pamatuje.</p>
+    <!-- ZÁLOŽKA 3: OSOBNÍ PAMĚŤ -->
+    <section id="view-memory" class="tab-view">
+      <h3>Osobní paměť</h3>
+      <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:12px;">Fakta, preference a informace, které si o tobě pamatuji.</p>
       
-      <div class="card">
-        <input type="text" id="memFactInput" placeholder="Nové zjištění (např. Mám rád kávu bez cukru)" style="margin-bottom: 8px;">
-        <button id="btnSaveMemory" style="width: 100%;">Uložit do paměti</button>
-      </div>
+      <form id="memory-form" style="display:flex; gap:8px; margin-bottom:16px;">
+        <input type="text" id="mem-input" placeholder="Nová vzpomínka či fakt..." style="margin-bottom:0;">
+        <button type="submit" class="btn" style="width:auto; padding:0 16px;">Uložit</button>
+      </form>
 
-      <div id="memoryList">
-        <!-- Položky paměti -->
-      </div>
+      <div id="memory-items"></div>
+
+      <button id="btn-clear-mem" class="btn btn-danger" style="margin-top:20px;">Vymazat celou paměť</button>
     </section>
 
-    <!-- ZÁLOŽKA 4: NASTAVENÍ -->
-    <section id="view-settings" class="view">
-      <h2 style="margin-bottom: 12px;">Nastavení</h2>
+    <!-- ZÁLOŽKA 4: NASTAVENÍ A JMÉNO -->
+    <section id="view-settings" class="tab-view">
+      <h3>Nastavení přítelkyně</h3>
+      
+      <form id="settings-form" style="margin-top:14px;">
+        <div class="card">
+          <label>Jméno virtuální přítelkyně</label>
+          <input type="text" id="set-name" required>
 
-      <div class="card">
-        <label style="font-weight: 600; display: block; margin-bottom: 6px;">Jméno přítelkyně</label>
-        <input type="text" id="settingNameInput" style="margin-bottom: 8px;">
-        <label style="font-weight: 600; display: block; margin-bottom: 6px;">Jak tě má oslovovat</label>
-        <input type="text" id="settingUserNick" placeholder="např. miláčku, Vojto" style="margin-bottom: 12px;">
-        <button id="btnSaveSettings" style="width: 100%;">Uložit změny jména</button>
-      </div>
+          <label>Alternativní oslovení / přezdívky</label>
+          <input type="text" id="set-alt-names" placeholder="Oddělte čárkou">
 
-      <div class="card">
-        <div style="font-weight: 600; margin-bottom: 6px;">PWA & Lokální data</div>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Všechna data jsou uložena výhradně lokálně v tvém zařízení (IndexedDB).</p>
-        <button id="btnInstallPwa" class="secondary" style="width: 100%; display: none; margin-bottom: 8px;">📲 Přidat aplikaci na plochu</button>
-      </div>
+          <label>Fonetická výslovnost</label>
+          <input type="text" id="set-pronounce" placeholder="Jak jméno čte syntéza">
+
+          <label>Jak tě má oslovovat</label>
+          <input type="text" id="set-user-name" placeholder="Např. Vojto, miláčku">
+        </div>
+
+        <div class="card">
+          <label>Míra romantiky (1 - 5)</label>
+          <input type="number" id="set-romance" min="1" max="5">
+
+          <label>Míra flirtu (1 - 5)</label>
+          <input type="number" id="set-flirt" min="1" max="5">
+        </div>
+
+        <button type="submit" class="btn">Uložit nastavení</button>
+      </form>
     </section>
   </main>
 
-  <!-- Spodní navigační lišta -->
-  <nav class="bottom-nav">
-    <button class="nav-btn active" data-view="view-chat">💬 Chat</button>
-    <button class="nav-btn" data-view="view-library">📚 Knihovna</button>
-    <button class="nav-btn" data-view="view-memory">🧠 Paměť</button>
-    <button class="nav-btn" data-view="view-settings">⚙️ Nastavení</button>
+  <!-- MODÁLNÍ OKNO PRO KNIHOVNU ODPOVĚDÍ -->
+  <div id="lib-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:100; padding:20px; overflow-y:auto;">
+    <div class="card" style="margin-top:20px;">
+      <h3 style="margin-bottom:12px;">Upravit / Přidat odpověď</h3>
+      <form id="lib-form">
+        <input type="hidden" id="modal-lib-id">
+        
+        <label>Název</label>
+        <input type="text" id="modal-lib-title" required>
+
+        <label>Spouštěč / Situace</label>
+        <input type="text" id="modal-lib-trigger" placeholder="Např. Když řeknu že jsem unavený" required>
+
+        <label>Odpověď</label>
+        <textarea id="modal-lib-response" rows="3" required></textarea>
+
+        <label>Kategorie</label>
+        <select id="modal-lib-cat"></select>
+
+        <label>Štítky (oddělené čárkou)</label>
+        <input type="text" id="modal-lib-tags">
+
+        <label>Varianty odpovědi (každá na nový řádek)</label>
+        <textarea id="modal-lib-variants" rows="2"></textarea>
+
+        <div class="btn-group">
+          <button type="submit" class="btn">Uložit</button>
+          <button type="button" id="btn-close-modal" class="btn btn-secondary">Zrušit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <nav>
+    <button class="nav-btn active" data-target="view-chat">
+      <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+      Chat
+    </button>
+    <button class="nav-btn" data-target="view-library">
+      <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+      Knihovna
+    </button>
+    <button class="nav-btn" data-target="view-memory">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+      Paměť
+    </button>
+    <button class="nav-btn" data-target="view-settings">
+      <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+      Nastavení
+    </button>
   </nav>
 
-  <script src="db.js"></script>
-  <script src="app.js"></script>
+  <!-- PŘÍMÝ DIAGNOSTICKÝ SKRIPT -->
+  <script>
+    async function spustitTestAI() {
+      alert("1. Tlačítko reaguje! Spouštím diagnostiku...");
+
+      if (!navigator.gpu) {
+        alert("CHYBA: Tento prohlížeč vůbec nepodporuje WebGPU.\n\nŘešení v mobilním Chromu: Do adresního řádku napiš chrome://flags, vyhledej 'webgpu' a nastav na Enabled.");
+        return;
+      }
+
+      try {
+        const adapter = await navigator.gpu.requestAdapter();
+        if (!adapter) {
+          alert("CHYBA: WebGPU je přítomno, ale nenašlo vhodný grafický čip na tvém mobilu.");
+          return;
+        }
+        alert("2. Skvělé! WebGPU je aktivní a grafický čip byl úspěšně nalezen!");
+      } catch (err) {
+        alert("CHYBA při zjišťování grafického čipu: " + err.message);
+        return;
+      }
+
+      alert("3. Testuji připojení a stahování AI knihovny (WebLLM)...");
+      try {
+        const webllm = await import('https://esm.run/@mlc-ai/web-llm');
+        alert("4. Knihovna úspěšně načtena! Vše je připraveno pro stažení modelu.");
+      } catch (err) {
+        alert("CHYBA při stahování knihovny z internetu: " + err.message);
+      }
+    }
+  </script>
+
+  <script type="module" src="src/app.js"></script>
 </body>
 </html>
