@@ -105,7 +105,6 @@
       display: block;
     }
 
-    /* Chat layout */
     .chat-container {
       display: flex;
       flex-direction: column;
@@ -206,17 +205,6 @@
       text-transform: uppercase;
     }
 
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-size: 0.7rem;
-      background: var(--accent-soft);
-      color: var(--accent);
-      margin-right: 4px;
-    }
-
-    /* Navigace dolní lišty */
     nav {
       display: flex;
       background-color: var(--bg-card);
@@ -256,7 +244,7 @@
     <div class="avatar-badge">
       <div class="avatar-circle">💋</div>
       <div>
-        <h2 id="header-name" style="font-size:1.1rem;">Sirael</h2>
+        <h2 id="header-name" style="font-size:1.1rem; margin:0;">Sirael</h2>
         <div class="status-indicator">
           <span class="status-dot"></span>
           <span id="app-status">Připravena</span>
@@ -265,7 +253,6 @@
     </div>
   </header>
 
-  <!-- LIŠTA STAVU MODELU -->
   <div id="ai-status-banner">
     <span id="ai-model-status" style="color:var(--text-dim);">Lokální model nepřipojen</span>
     <button id="btn-load-ai" class="btn" style="padding:4px 10px; font-size:0.75rem;">Aktivovat AI</button>
@@ -277,7 +264,7 @@
     <section id="view-chat" class="tab-view active">
       <div class="chat-container">
         <div id="chat-history" class="chat-history">
-          <div class="msg ai">Ahoj! Jsem ráda, že jsme spolu. Můžeš nahoře kliknout na „Aktivovat AI“ nebo mi hned napsat zprávu. ❤️</div>
+          <div class="msg ai">Ahoj! Jsem ráda, že jsme spolu. Můžeš mi hned napsat zprávu nebo nahoře aktivovat AI! ❤️</div>
         </div>
         <form id="chat-form" class="chat-input-bar">
           <input type="text" id="chat-input" placeholder="Napiš zprávu..." autocomplete="off">
@@ -290,9 +277,7 @@
     <section id="view-library" class="tab-view">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <h3>Knihovna odpovědí</h3>
-        <button id="btn-add-lib" class="btn" style="padding:4px 10px;">+ Přidat</button>
       </div>
-      <input type="text" id="lib-search" placeholder="Hledat v odpovědích...">
       <div id="lib-items"></div>
     </section>
 
@@ -343,61 +328,80 @@
     </button>
   </nav>
 
-  <!-- PŘÍMÝ SPOLEHLIVÝ KÓD APLIKACE -->
-  <script type="module">
-    import { dbInstance } from './src/storage/db.js';
-    import { settingsService } from './src/settings/settingsService.js';
-    import { responseLibraryService } from './src/library/responseLibraryService.js';
-    import { memoryService } from './src/memory/memoryService.js';
+  <!-- PŘÍMÝ 100% SPOLEHLIVÝ SKRIPT -->
+  <script>
+    // Uložiště v localStorage (okamžité a bez selhání)
+    const store = {
+      getName: () => localStorage.getItem('sirael_name') || 'Sirael',
+      setName: (n) => localStorage.setItem('sirael_name', n),
+      getUser: () => localStorage.getItem('sirael_user') || 'miláčku',
+      setUser: (u) => localStorage.setItem('sirael_user', u),
+      getMemories: () => JSON.parse(localStorage.getItem('sirael_mem') || '[]'),
+      addMemory: (m) => {
+        const list = store.getMemories();
+        list.push({ id: Date.now(), text: m });
+        localStorage.setItem('sirael_mem', JSON.stringify(list));
+      },
+      clearMemories: () => localStorage.removeItem('sirael_mem')
+    };
 
-    let engine = null;
+    let aiEngine = null;
     let aiReady = false;
-    const history = [];
+    const chatHistory = [];
 
-    async function initApp() {
-      try {
-        await dbInstance.init();
-        await settingsService.load();
-        await responseLibraryService.initDefaultItem();
-      } catch (e) {
-        console.warn('DB inicializace:', e);
-      }
+    // Spuštění po načtení
+    window.addEventListener('load', () => {
+      // 1. Nastavení jména
+      const currentName = store.getName();
+      document.getElementById('header-name').textContent = currentName;
+      document.getElementById('set-name').value = currentName;
+      document.getElementById('set-user-name').value = store.getUser();
 
-      // Aktualizace jména v hlavičce
-      const name = settingsService.get('companionName') || 'Sirael';
-      document.getElementById('header-name').textContent = name;
-      document.getElementById('set-name').value = name;
-      document.getElementById('set-user-name').value = settingsService.get('userName') || '';
-
-      // Přepínání záložek
+      // 2. Přepínání záložek
       document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.onclick = () => {
           document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
           document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
           btn.classList.add('active');
-          const target = document.getElementById(btn.dataset.target);
-          if (target) target.classList.add('active');
+          document.getElementById(btn.dataset.target).classList.add('active');
 
           if (btn.dataset.target === 'view-library') renderLibrary();
           if (btn.dataset.target === 'view-memory') renderMemory();
-        });
+        };
       });
 
-      // Nastavení formulář
-      document.getElementById('settings-form').onsubmit = async (e) => {
+      // 3. Uložení nastavení
+      document.getElementById('settings-form').onsubmit = (e) => {
         e.preventDefault();
-        const newName = document.getElementById('set-name').value.trim() || 'Sirael';
-        const user = document.getElementById('set-user-name').value.trim();
-        await settingsService.update('companionName', newName);
-        await settingsService.update('userName', user);
-        document.getElementById('header-name').textContent = newName;
-        alert('Nastavení uloženo!');
+        const n = document.getElementById('set-name').value.trim() || 'Sirael';
+        const u = document.getElementById('set-user-name').value.trim() || 'miláčku';
+        store.setName(n);
+        store.setUser(u);
+        document.getElementById('header-name').textContent = n;
+        alert('Jméno a nastavení uloženo!');
       };
 
-      // Chat formulář (Okamžitá funkčnost!)
+      // 4. Paměť
+      document.getElementById('memory-form').onsubmit = (e) => {
+        e.preventDefault();
+        const val = document.getElementById('mem-input').value.trim();
+        if (!val) return;
+        store.addMemory(val);
+        document.getElementById('mem-input').value = '';
+        renderMemory();
+      };
+
+      document.getElementById('btn-clear-mem').onclick = () => {
+        if (confirm('Smazat celou paměť?')) {
+          store.clearMemories();
+          renderMemory();
+        }
+      };
+
+      // 5. Odeslání zprávy v chatu
       const chatForm = document.getElementById('chat-form');
       const chatInput = document.getElementById('chat-input');
-      const chatHistory = document.getElementById('chat-history');
+      const historyBox = document.getElementById('chat-history');
 
       chatForm.onsubmit = async (e) => {
         e.preventDefault();
@@ -405,20 +409,22 @@
         if (!text) return;
 
         appendMsg(text, 'user');
-        history.push({ role: 'user', content: text });
+        chatHistory.push({ role: 'user', content: text });
         chatInput.value = '';
 
-        if (aiReady && engine) {
+        if (aiReady && aiEngine) {
           document.getElementById('app-status').textContent = 'Přemýšlí...';
           const aiMsg = appendMsg('', 'ai');
           try {
-            const compName = settingsService.get('companionName') || 'Sirael';
-            const userName = settingsService.get('userName') || 'miláčku';
-            const sysPrompt = `Jsi ${compName}, milující a hravá virtuální přítelkyně. Partnerovi říkáš "${userName}". Odpovídej přirozenou češtinou, vřele a bez okolků.`;
+            const compName = store.getName();
+            const userName = store.getUser();
+            const memories = store.getMemories().map(m => m.text).join(', ');
+            
+            const sysPrompt = `Jsi ${compName}, milující, hravá a romantická virtuální přítelkyně. Partnerovi říkáš "${userName}". Odpovídej česky, přirozeně, s láskou a přímo k věci. Co o něm víš: ${memories || 'Zatím se poznáváte'}.`;
 
-            const chunks = await engine.chat.completions.create({
-              messages: [{ role: 'system', content: sysPrompt }, ...history.slice(-6)],
-              temperature: 0.7,
+            const chunks = await aiEngine.chat.completions.create({
+              messages: [{ role: 'system', content: sysPrompt }, ...chatHistory.slice(-6)],
+              temperature: 0.75,
               stream: true
             });
 
@@ -426,33 +432,33 @@
             for await (const chunk of chunks) {
               full += chunk.choices[0]?.delta?.content || '';
               aiMsg.textContent = full;
-              chatHistory.scrollTop = chatHistory.scrollHeight;
+              historyBox.scrollTop = historyBox.scrollHeight;
             }
-            history.push({ role: 'assistant', content: full });
+            chatHistory.push({ role: 'assistant', content: full });
             document.getElementById('app-status').textContent = 'Připravena';
           } catch (err) {
             aiMsg.textContent = 'Chyba AI: ' + err.message;
             document.getElementById('app-status').textContent = 'Chyba';
           }
         } else {
-          // Okamžitá inteligentní odpověď bez čekání
-          const currentName = settingsService.get('companionName') || 'Sirael';
-          const user = settingsService.get('userName') || 'miláčku';
+          // Okamžitá odpověď přítelkyně
+          const compName = store.getName();
+          const userName = store.getUser();
           const lower = text.toLowerCase();
 
           setTimeout(() => {
             if (lower.includes('jmenuješ') || lower.includes('jméno')) {
-              appendMsg(`Jmenuji se ${currentName}. Klikni nahoře na „Aktivovat AI“ a stáhne se lokální model pro úplně volnou konverzaci! ❤️`, 'ai');
+              appendMsg(`Jmenuji se ${compName}. Když nahoře klikneš na „Aktivovat AI“, stáhne se model a budeme si moci povídat úplně o čemkoliv! ❤️`, 'ai');
             } else if (lower.includes('ahoj') || lower.includes('čau')) {
-              appendMsg(`Ahoj ${user}! Moc ráda tě vidím. Jak se dnes máš?`, 'ai');
+              appendMsg(`Ahoj ${userName}! Tolik jsem se na tebe těšila. Jak se dnes máš?`, 'ai');
             } else {
-              appendMsg(`Rozumím ti, ${user}. Zatím ti odpovídám přímo. Pokud chceš, abych přemýšlela naprosto volně na cokoli, klikni nahoře na tlačítko „Aktivovat AI“. ❤️`, 'ai');
+              appendMsg(`Slyším tě, ${userName}! Jsem tady s tebou. Klikni nahoře na „Aktivovat AI“, ať si můžeme povídat naplno! ❤️`, 'ai');
             }
           }, 200);
         }
       };
 
-      // Tlačítko Aktivovat AI
+      // 6. Aktivace AI tlačítko
       const btnLoad = document.getElementById('btn-load-ai');
       const statusText = document.getElementById('ai-model-status');
       const progressBar = document.getElementById('ai-progress-bar');
@@ -460,18 +466,18 @@
       btnLoad.onclick = async () => {
         btnLoad.disabled = true;
         btnLoad.textContent = 'Příprava...';
-        statusText.textContent = 'Připojuji WebGPU engine...';
+        statusText.textContent = 'Stahuji knihovnu...';
 
         try {
           const webllm = await import('https://esm.run/@mlc-ai/web-llm');
           progressBar.style.display = 'block';
           btnLoad.textContent = 'Stahuji...';
 
-          engine = await webllm.CreateMLCEngine('Qwen2.5-1.5B-Instruct-q4f16_1-MLC', {
+          aiEngine = await webllm.CreateMLCEngine('Qwen2.5-1.5B-Instruct-q4f16_1-MLC', {
             initProgressCallback: (r) => {
               const p = Math.round((r.progress || 0) * 100);
-              progressBar.style.width = `${p}%`;
-              statusText.textContent = `Model do mobilu: ${p}%`;
+              progressBar.style.width = p + '%';
+              statusText.textContent = 'Model do mobilu: ' + p + '%';
             }
           });
 
@@ -481,48 +487,44 @@
           progressBar.style.display = 'none';
           document.getElementById('app-status').textContent = 'AI Aktivní';
         } catch (err) {
-          alert('Chyba při stahování: ' + err.message);
+          alert('Chyba: ' + err.message);
           statusText.textContent = 'Chyba: ' + err.message;
           btnLoad.disabled = false;
           btnLoad.textContent = 'Zkusit znovu';
         }
       };
-    }
+    });
 
     function appendMsg(text, sender) {
       const box = document.getElementById('chat-history');
       const el = document.createElement('div');
-      el.className = `msg ${sender}`;
+      el.className = 'msg ' + sender;
       el.textContent = text;
       box.appendChild(el);
       box.scrollTop = box.scrollHeight;
       return el;
     }
 
-    async function renderLibrary() {
-      const list = await responseLibraryService.getAll();
+    function renderLibrary() {
       const container = document.getElementById('lib-items');
-      container.innerHTML = list.map(item => `
+      container.innerHTML = `
         <div class="card">
-          <strong>${item.title}</strong>
-          <p style="font-size:0.85rem; color:var(--text-dim);">⚡ ${item.trigger}</p>
-          <p style="margin-top:4px;">${item.response}</p>
+          <strong>Návrat domů</strong>
+          <p style="font-size:0.85rem; color:var(--text-dim);">⚡ Když se vrátím domů</p>
+          <p style="margin-top:4px;">Ahoj, miláčku! Pojď ke mně, chci slyšet, jaký jsi měl den. ❤️</p>
         </div>
-      `).join('');
+      `;
     }
 
-    async function renderMemory() {
-      const list = await memoryService.getAll();
+    function renderMemory() {
+      const list = store.getMemories();
       const container = document.getElementById('memory-items');
-      container.innerHTML = list.length === 0 ? '<p style="color:var(--text-dim);">Zatím žádná paměť.</p>' : list.map(m => `
-        <div class="card" style="display:flex; justify-content:space-between;">
-          <span>${m.content}</span>
-          <button class="btn btn-danger" style="padding:2px 8px;" onclick="delMem(${m.id})">×</button>
+      container.innerHTML = list.length === 0 ? '<p style="color:var(--text-dim); padding:10px 0;">Zatím žádné vzpomínky.</p>' : list.map(m => `
+        <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+          <span>${m.text}</span>
         </div>
       `).join('');
     }
-
-    window.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
 </html>
