@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sirael-v7-stable';
+const CACHE_NAME = 'sirael-v8-inline';
 const ASSETS = [
   './',
   './index.html',
