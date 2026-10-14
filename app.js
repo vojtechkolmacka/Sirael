@@ -34,7 +34,8 @@ class SiraelApp {
 
   renderHeader() {
     const name = settingsService.get('companionName');
-    document.getElementById('header-name').textContent = name;
+    const headerTitle = document.getElementById('header-name');
+    if (headerTitle) headerTitle.textContent = name;
   }
 
   bindAI() {
@@ -43,33 +44,43 @@ class SiraelApp {
     const progressBar = document.getElementById('ai-progress-bar');
     const appStatus = document.getElementById('app-status');
 
-    btnLoad.onclick = async () => {
-      const gpu = await aiService.checkWebGPUSupport();
-      if (!gpu.supported) {
-        alert('WebGPU není v tomto prohlížeči dostupné: ' + gpu.reason);
-        return;
-      }
+    if (!btnLoad) return;
 
+    btnLoad.onclick = async () => {
       btnLoad.disabled = true;
-      btnLoad.textContent = 'Stahuji...';
-      progressBar.style.display = 'block';
+      btnLoad.textContent = 'Ověřuji...';
+      if (statusText) statusText.textContent = 'Kontrola WebGPU...';
 
       try {
+        const gpu = await aiService.checkWebGPUSupport();
+        if (!gpu.supported) {
+          alert('UPOZORNĚNÍ: ' + gpu.reason + '\n\nPro zapnutí WebGPU zadej v Chromu do adresy chrome://flags a povol WebGPU.');
+          if (statusText) statusText.textContent = 'WebGPU nepodporováno';
+          btnLoad.disabled = false;
+          btnLoad.textContent = 'Aktivovat AI';
+          return;
+        }
+
+        if (statusText) statusText.textContent = 'Připojuji model...';
+        btnLoad.textContent = 'Stahuji...';
+        if (progressBar) progressBar.style.display = 'block';
+
         await aiService.initModel((report) => {
           const pct = Math.round((report.progress || 0) * 100);
-          progressBar.style.width = `${pct}%`;
-          statusText.textContent = `Příprava AI: ${pct}%`;
+          if (progressBar) progressBar.style.width = `${pct}%`;
+          if (statusText) statusText.textContent = report.text || `Stahování: ${pct}%`;
         });
 
-        statusText.textContent = 'Lokální AI připravena (WebGPU)';
+        if (statusText) statusText.textContent = 'Lokální AI připravena';
         btnLoad.style.display = 'none';
-        progressBar.style.display = 'none';
-        appStatus.textContent = 'Aktivní (Lokální AI)';
+        if (progressBar) progressBar.style.display = 'none';
+        if (appStatus) appStatus.textContent = 'Aktivní (Lokální AI)';
       } catch (err) {
-        statusText.textContent = 'Chyba načítání AI';
+        console.error(err);
+        alert('CHYBA PŘI STARTU MODELU:\n' + err.message);
+        if (statusText) statusText.textContent = 'Chyba: ' + err.message;
         btnLoad.disabled = false;
         btnLoad.textContent = 'Zkusit znovu';
-        alert('Chyba při startu lokální AI: ' + err.message);
       }
     };
   }
@@ -96,16 +107,26 @@ class SiraelApp {
 
   fillSettingsForm() {
     const s = settingsService.getAll();
-    document.getElementById('set-name').value = s.companionName;
-    document.getElementById('set-alt-names').value = s.alternativeNames;
-    document.getElementById('set-pronounce').value = s.pronunciation;
-    document.getElementById('set-user-name').value = s.userName;
-    document.getElementById('set-romance').value = s.romanceLevel;
-    document.getElementById('set-flirt').value = s.flirtLevel;
+    const setName = document.getElementById('set-name');
+    const setAlt = document.getElementById('set-alt-names');
+    const setPron = document.getElementById('set-pronounce');
+    const setUser = document.getElementById('set-user-name');
+    const setRom = document.getElementById('set-romance');
+    const setFlirt = document.getElementById('set-flirt');
+
+    if (setName) setName.value = s.companionName || 'Sirael';
+    if (setAlt) setAlt.value = s.alternativeNames || '';
+    if (setPron) setPron.value = s.pronunciation || '';
+    if (setUser) setUser.value = s.userName || '';
+    if (setRom) setRom.value = s.romanceLevel || 4;
+    if (setFlirt) setFlirt.value = s.flirtLevel || 4;
   }
 
   bindSettingsForm() {
-    document.getElementById('settings-form').addEventListener('submit', async (e) => {
+    const form = document.getElementById('settings-form');
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       await settingsService.update('companionName', document.getElementById('set-name').value.trim() || 'Sirael');
       await settingsService.update('alternativeNames', document.getElementById('set-alt-names').value.trim());
@@ -120,10 +141,14 @@ class SiraelApp {
   }
 
   async renderLibraryList() {
-    const query = document.getElementById('lib-search').value;
-    const cat = document.getElementById('lib-filter-cat').value;
+    const searchEl = document.getElementById('lib-search');
+    const filterEl = document.getElementById('lib-filter-cat');
+    const query = searchEl ? searchEl.value : '';
+    const cat = filterEl ? filterEl.value : 'all';
+
     const items = await responseLibraryService.search(query, cat);
     const container = document.getElementById('lib-items');
+    if (!container) return;
 
     container.innerHTML = items.length === 0 
       ? '<p style="color:var(--text-dim); text-align:center; padding:20px;">Žádné odpovědi nenalezeny.</p>'
@@ -168,8 +193,11 @@ class SiraelApp {
   }
 
   bindLibrary() {
-    const catSelects = [document.getElementById('lib-filter-cat'), document.getElementById('modal-lib-cat')];
-    catSelects.forEach((select) => {
+    const filterCat = document.getElementById('lib-filter-cat');
+    const modalCat = document.getElementById('modal-lib-cat');
+
+    [filterCat, modalCat].forEach((select) => {
+      if (!select) return;
       CATEGORIES.forEach((c) => {
         const opt = document.createElement('option');
         opt.value = c;
@@ -178,67 +206,85 @@ class SiraelApp {
       });
     });
 
-    document.getElementById('lib-search').addEventListener('input', () => this.renderLibraryList());
-    document.getElementById('lib-filter-cat').addEventListener('change', () => this.renderLibraryList());
+    const searchInput = document.getElementById('lib-search');
+    if (searchInput) searchInput.addEventListener('input', () => this.renderLibraryList());
+    if (filterCat) filterCat.addEventListener('change', () => this.renderLibraryList());
 
-    document.getElementById('btn-add-lib').onclick = () => {
-      document.getElementById('lib-form').reset();
-      document.getElementById('modal-lib-id').value = '';
-      document.getElementById('lib-modal').style.display = 'block';
-    };
-
-    document.getElementById('btn-close-modal').onclick = () => {
-      document.getElementById('lib-modal').style.display = 'none';
-    };
-
-    document.getElementById('lib-form').onsubmit = async (e) => {
-      e.preventDefault();
-      const id = document.getElementById('modal-lib-id').value;
-      const data = {
-        title: document.getElementById('modal-lib-title').value.trim(),
-        trigger: document.getElementById('modal-lib-trigger').value.trim(),
-        response: document.getElementById('modal-lib-response').value.trim(),
-        category: document.getElementById('modal-lib-cat').value,
-        tags: document.getElementById('modal-lib-tags').value.trim(),
-        variants: document.getElementById('modal-lib-variants').value
+    const btnAdd = document.getElementById('btn-add-lib');
+    if (btnAdd) {
+      btnAdd.onclick = () => {
+        document.getElementById('lib-form').reset();
+        document.getElementById('modal-lib-id').value = '';
+        document.getElementById('lib-modal').style.display = 'block';
       };
+    }
 
-      if (id) {
-        await responseLibraryService.updateItem({ ...data, id: Number(id) });
-      } else {
-        await responseLibraryService.addItem(data);
-      }
-      document.getElementById('lib-modal').style.display = 'none';
-      this.renderLibraryList();
-    };
+    const btnCloseModal = document.getElementById('btn-close-modal');
+    if (btnCloseModal) {
+      btnCloseModal.onclick = () => {
+        document.getElementById('lib-modal').style.display = 'none';
+      };
+    }
 
-    document.getElementById('btn-export-lib').onclick = async () => {
-      const dataStr = await responseLibraryService.exportJSON();
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `sirael_odpovedi_${Date.now()}.json`;
-      a.click();
-    };
+    const libForm = document.getElementById('lib-form');
+    if (libForm) {
+      libForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('modal-lib-id').value;
+        const data = {
+          title: document.getElementById('modal-lib-title').value.trim(),
+          trigger: document.getElementById('modal-lib-trigger').value.trim(),
+          response: document.getElementById('modal-lib-response').value.trim(),
+          category: document.getElementById('modal-lib-cat').value,
+          tags: document.getElementById('modal-lib-tags').value.trim(),
+          variants: document.getElementById('modal-lib-variants').value
+        };
 
-    document.getElementById('lib-file-import').onchange = async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const text = await file.text();
-      try {
-        const count = await responseLibraryService.importJSON(text);
-        alert(`Úspěšně importováno ${count} nových odpovědí.`);
+        if (id) {
+          await responseLibraryService.updateItem({ ...data, id: Number(id) });
+        } else {
+          await responseLibraryService.addItem(data);
+        }
+        document.getElementById('lib-modal').style.display = 'none';
         this.renderLibraryList();
-      } catch (err) {
-        alert('Chyba při importu: ' + err.message);
-      }
-    };
+      };
+    }
+
+    const btnExport = document.getElementById('btn-export-lib');
+    if (btnExport) {
+      btnExport.onclick = async () => {
+        const dataStr = await responseLibraryService.exportJSON();
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sirael_odpovedi_${Date.now()}.json`;
+        a.click();
+      };
+    }
+
+    const fileImport = document.getElementById('lib-file-import');
+    if (fileImport) {
+      fileImport.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const text = await file.text();
+        try {
+          const count = await responseLibraryService.importJSON(text);
+          alert(`Úspěšně importováno ${count} nových odpovědí.`);
+          this.renderLibraryList();
+        } catch (err) {
+          alert('Chyba při importu: ' + err.message);
+        }
+      };
+    }
   }
 
   async renderMemoryList() {
     const list = await memoryService.getAll();
     const container = document.getElementById('memory-items');
+    if (!container) return;
+
     container.innerHTML = list.length === 0
       ? '<p style="color:var(--text-dim); text-align:center; padding:20px;">Žádné vzpomínky zatím nejsou uloženy.</p>'
       : list.map((m) => `
@@ -260,28 +306,36 @@ class SiraelApp {
   }
 
   bindMemory() {
-    document.getElementById('memory-form').onsubmit = async (e) => {
-      e.preventDefault();
-      const input = document.getElementById('mem-input');
-      const val = input.value.trim();
-      if (!val) return;
-      await memoryService.addMemory(val, 'fact');
-      input.value = '';
-      this.renderMemoryList();
-    };
-
-    document.getElementById('btn-clear-mem').onclick = async () => {
-      if (confirm('Opravdu smazat celou paměť?')) {
-        await memoryService.clearAll();
+    const memForm = document.getElementById('memory-form');
+    if (memForm) {
+      memForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const input = document.getElementById('mem-input');
+        const val = input.value.trim();
+        if (!val) return;
+        await memoryService.addMemory(val, 'fact');
+        input.value = '';
         this.renderMemoryList();
-      }
-    };
+      };
+    }
+
+    const btnClear = document.getElementById('btn-clear-mem');
+    if (btnClear) {
+      btnClear.onclick = async () => {
+        if (confirm('Opravdu smazat celou paměť?')) {
+          await memoryService.clearAll();
+          this.renderMemoryList();
+        }
+      };
+    }
   }
 
   bindChat() {
     const form = document.getElementById('chat-form');
     const input = document.getElementById('chat-input');
     const appStatus = document.getElementById('app-status');
+
+    if (!form || !input) return;
 
     form.onsubmit = async (e) => {
       e.preventDefault();
@@ -293,7 +347,7 @@ class SiraelApp {
       input.value = '';
 
       if (aiService.isReady) {
-        appStatus.textContent = 'Přemýšlí...';
+        if (appStatus) appStatus.textContent = 'Přemýšlí...';
         const aiMsgElement = this.appendMsg('', 'ai');
 
         try {
@@ -308,15 +362,16 @@ class SiraelApp {
             systemPrompt,
             (delta, currentFull) => {
               aiMsgElement.textContent = currentFull;
-              document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
+              const historyBox = document.getElementById('chat-history');
+              if (historyBox) historyBox.scrollTop = historyBox.scrollHeight;
             }
           );
 
           this.history.push({ role: 'assistant', content: fullReply });
-          appStatus.textContent = 'Připravena';
+          if (appStatus) appStatus.textContent = 'Připravena';
         } catch (err) {
           aiMsgElement.textContent = 'Došlo k chybě: ' + err.message;
-          appStatus.textContent = 'Chyba';
+          if (appStatus) appStatus.textContent = 'Chyba';
         }
       } else {
         const matched = await responseLibraryService.findRelevantContext(text, 1);
@@ -338,6 +393,7 @@ class SiraelApp {
 
   appendMsg(text, sender) {
     const history = document.getElementById('chat-history');
+    if (!history) return null;
     const msg = document.createElement('div');
     msg.className = `msg ${sender}`;
     msg.textContent = text;
