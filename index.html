@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Sirael</title>
-  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ff4d6d">
   <style>
     :root {
@@ -12,20 +11,12 @@
       --bg-card: #181920;
       --bg-input: #232530;
       --accent: #ff4d6d;
-      --accent-soft: rgba(255, 77, 109, 0.15);
       --text-main: #f0f0f5;
       --text-dim: #9092a0;
       --border: #2e303e;
       --status-ready: #4ade80;
     }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-tap-highlight-color: transparent;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: var(--bg-main);
@@ -35,7 +26,6 @@
       flex-direction: column;
       overflow: hidden;
     }
-
     header {
       display: flex;
       justify-content: space-between;
@@ -43,41 +33,15 @@
       padding: 12px 16px;
       background-color: var(--bg-card);
       border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
     }
-
-    .avatar-badge {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
+    .avatar-badge { display: flex; align-items: center; gap: 12px; }
     .avatar-circle {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
+      width: 40px; height: 40px; border-radius: 50%;
       background: linear-gradient(135deg, #ff4d6d, #8338ec);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
     }
-
-    .status-indicator {
-      font-size: 0.75rem;
-      color: var(--status-ready);
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .status-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background-color: currentColor;
-    }
-
+    .status-indicator { font-size: 0.75rem; color: var(--status-ready); display: flex; align-items: center; gap: 4px; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background-color: currentColor; }
     #ai-status-banner {
       background: #181920;
       border-bottom: 1px solid var(--border);
@@ -86,156 +50,45 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-shrink: 0;
     }
-
-    main {
-      flex: 1;
-      overflow-y: auto;
-      position: relative;
-    }
-
-    .tab-view {
-      display: none;
-      padding: 14px;
-      min-height: 100%;
-    }
-
-    .tab-view.active {
-      display: block;
-    }
-
-    .chat-container {
-      display: flex;
-      flex-direction: column;
-      height: calc(100dvh - 160px);
-    }
-
+    main { flex: 1; overflow-y: auto; position: relative; }
+    .tab-view { display: none; padding: 14px; min-height: 100%; }
+    .tab-view.active { display: block; }
+    .chat-container { display: flex; flex-direction: column; height: calc(100dvh - 160px); }
     .chat-history {
-      flex: 1;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      padding-bottom: 12px;
+      flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-bottom: 12px;
     }
-
     .msg {
-      max-width: 85%;
-      padding: 10px 14px;
-      border-radius: 14px;
-      line-height: 1.4;
-      font-size: 0.95rem;
-      word-break: break-word;
+      max-width: 85%; padding: 10px 14px; border-radius: 14px; line-height: 1.4; font-size: 0.95rem; word-break: break-word;
     }
-
-    .msg.user {
-      align-self: flex-end;
-      background-color: var(--accent);
-      color: white;
-      border-bottom-right-radius: 2px;
-    }
-
-    .msg.ai {
-      align-self: flex-start;
-      background-color: var(--bg-card);
-      border: 1px solid var(--border);
-      border-bottom-left-radius: 2px;
-    }
-
-    .chat-input-bar {
-      display: flex;
-      gap: 8px;
-      padding-top: 8px;
-      border-top: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-
+    .msg.user { align-self: flex-end; background-color: var(--accent); color: white; border-bottom-right-radius: 2px; }
+    .msg.ai { align-self: flex-start; background-color: var(--bg-card); border: 1px solid var(--border); border-bottom-left-radius: 2px; }
+    .chat-input-bar { display: flex; gap: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
     input, select, textarea {
-      width: 100%;
-      padding: 10px 12px;
-      border-radius: 8px;
-      background: var(--bg-input);
-      border: 1px solid var(--border);
-      color: var(--text-main);
-      font-size: 0.95rem;
-      margin-bottom: 10px;
+      width: 100%; padding: 10px 12px; border-radius: 8px; background: var(--bg-input);
+      border: 1px solid var(--border); color: var(--text-main); font-size: 0.95rem; margin-bottom: 10px;
     }
-
-    .chat-input-bar input {
-      margin-bottom: 0;
-      flex: 1;
-    }
-
+    .chat-input-bar input { margin-bottom: 0; flex: 1; }
     .btn {
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-weight: 600;
-      border: none;
-      cursor: pointer;
-      background: var(--accent);
-      color: white;
-      font-size: 0.9rem;
+      padding: 10px 14px; border-radius: 8px; font-weight: 600; border: none; cursor: pointer;
+      background: var(--accent); color: white; font-size: 0.9rem;
     }
-
-    .btn-secondary {
-      background: var(--bg-input);
-      color: var(--text-main);
-      border: 1px solid var(--border);
-    }
-
-    .btn-danger {
-      background: #dc2626;
-      color: white;
-    }
-
+    .btn-secondary { background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border); }
+    .btn-danger { background: #dc2626; color: white; }
     .card {
-      background-color: var(--bg-card);
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 12px;
-      border: 1px solid var(--border);
+      background-color: var(--bg-card); border-radius: 12px; padding: 14px; margin-bottom: 12px; border: 1px solid var(--border);
     }
-
-    label {
-      display: block;
-      font-size: 0.75rem;
-      color: var(--text-dim);
-      margin-bottom: 6px;
-      text-transform: uppercase;
-    }
-
+    label { display: block; font-size: 0.75rem; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; }
     nav {
-      display: flex;
-      background-color: var(--bg-card);
-      border-top: 1px solid var(--border);
+      display: flex; background-color: var(--bg-card); border-top: 1px solid var(--border);
       padding-bottom: env(safe-area-inset-bottom, 10px);
-      flex-shrink: 0;
     }
-
     .nav-btn {
-      flex: 1;
-      padding: 8px 4px;
-      background: none;
-      border: none;
-      color: var(--text-dim);
-      font-size: 0.75rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      cursor: pointer;
+      flex: 1; padding: 8px 4px; background: none; border: none; color: var(--text-dim);
+      font-size: 0.75rem; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;
     }
-
-    .nav-btn.active {
-      color: var(--accent);
-    }
-
-    .nav-btn svg {
-      width: 20px;
-      height: 20px;
-      fill: currentColor;
-    }
+    .nav-btn.active { color: var(--accent); }
+    .nav-btn svg { width: 20px; height: 20px; fill: currentColor; }
   </style>
 </head>
 <body>
@@ -244,7 +97,7 @@
     <div class="avatar-badge">
       <div class="avatar-circle">💋</div>
       <div>
-        <h2 id="header-name" style="font-size:1.1rem; margin:0;">Sirael</h2>
+        <h2 id="header-name" style="font-size:1.1rem;">Sirael</h2>
         <div class="status-indicator">
           <span class="status-dot"></span>
           <span id="app-status">Připravena</span>
@@ -257,10 +110,9 @@
     <span id="ai-model-status" style="color:var(--text-dim);">Lokální model nepřipojen</span>
     <button id="btn-load-ai" class="btn" style="padding:4px 10px; font-size:0.75rem;">Aktivovat AI</button>
   </div>
-  <div id="ai-progress-bar" style="display:none; height:3px; background:var(--accent); width:0%; transition:width 0.2s;"></div>
+  <div id="ai-progress-bar" style="display:none; height:3px; background:var(--accent); width:0%;"></div>
 
   <main>
-    <!-- ZÁLOŽKA 1: CHAT -->
     <section id="view-chat" class="tab-view active">
       <div class="chat-container">
         <div id="chat-history" class="chat-history">
@@ -273,30 +125,27 @@
       </div>
     </section>
 
-    <!-- ZÁLOŽKA 2: KNIHOVNA ODPOVĚDÍ -->
     <section id="view-library" class="tab-view">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <h3>Knihovna odpovědí</h3>
+      <h3 style="margin-bottom:12px;">Knihovna odpovědí</h3>
+      <div class="card">
+        <strong>Návrat domů</strong>
+        <p style="font-size:0.85rem; color:var(--text-dim); margin-top:4px;">⚡ Když se vrátím domů</p>
+        <p style="margin-top:6px;">Ahoj, miláčku! Pojď ke mně, chci slyšet, jaký jsi měl den. ❤️</p>
       </div>
-      <div id="lib-items"></div>
     </section>
 
-    <!-- ZÁLOŽKA 3: OSOBNÍ PAMĚŤ -->
     <section id="view-memory" class="tab-view">
-      <h3>Osobní paměť</h3>
-      <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:12px;">Fakta, která si o tobě pamatuji.</p>
+      <h3 style="margin-bottom:12px;">Osobní paměť</h3>
       <form id="memory-form" style="display:flex; gap:8px; margin-bottom:16px;">
         <input type="text" id="mem-input" placeholder="Nová vzpomínka..." style="margin-bottom:0;">
         <button type="submit" class="btn">Uložit</button>
       </form>
       <div id="memory-items"></div>
-      <button id="btn-clear-mem" class="btn btn-danger" style="margin-top:16px; width:100%;">Vymazat celou paměť</button>
     </section>
 
-    <!-- ZÁLOŽKA 4: NASTAVENÍ A JMÉNO -->
     <section id="view-settings" class="tab-view">
-      <h3>Nastavení přítelkyně</h3>
-      <form id="settings-form" style="margin-top:14px;">
+      <h3 style="margin-bottom:12px;">Nastavení přítelkyně</h3>
+      <form id="settings-form">
         <div class="card">
           <label>Jméno virtuální přítelkyně</label>
           <input type="text" id="set-name" value="Sirael" required>
@@ -308,193 +157,43 @@
     </section>
   </main>
 
-  <!-- DOLNÍ LIŠTA -->
   <nav>
-    <button class="nav-btn active" data-target="view-chat">
+    <button class="nav-btn active" onclick="switchTab('view-chat', this)">
       <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
       Chat
     </button>
-    <button class="nav-btn" data-target="view-library">
+    <button class="nav-btn" onclick="switchTab('view-library', this)">
       <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
       Knihovna
     </button>
-    <button class="nav-btn" data-target="view-memory">
+    <button class="nav-btn" onclick="switchTab('view-memory', this)">
       <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
       Paměť
     </button>
-    <button class="nav-btn" data-target="view-settings">
+    <button class="nav-btn" onclick="switchTab('view-settings', this)">
       <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
       Nastavení
     </button>
   </nav>
 
-  <!-- PŘÍMÝ 100% SPOLEHLIVÝ SKRIPT -->
   <script>
-    // Uložiště v localStorage (okamžité a bez selhání)
-    const store = {
-      getName: () => localStorage.getItem('sirael_name') || 'Sirael',
-      setName: (n) => localStorage.setItem('sirael_name', n),
-      getUser: () => localStorage.getItem('sirael_user') || 'miláčku',
-      setUser: (u) => localStorage.setItem('sirael_user', u),
-      getMemories: () => JSON.parse(localStorage.getItem('sirael_mem') || '[]'),
-      addMemory: (m) => {
-        const list = store.getMemories();
-        list.push({ id: Date.now(), text: m });
-        localStorage.setItem('sirael_mem', JSON.stringify(list));
-      },
-      clearMemories: () => localStorage.removeItem('sirael_mem')
-    };
-
-    let aiEngine = null;
-    let aiReady = false;
-    const chatHistory = [];
-
-    // Spuštění po načtení
-    window.addEventListener('load', () => {
-      // 1. Nastavení jména
-      const currentName = store.getName();
-      document.getElementById('header-name').textContent = currentName;
-      document.getElementById('set-name').value = currentName;
-      document.getElementById('set-user-name').value = store.getUser();
-
-      // 2. Přepínání záložek
-      document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.onclick = () => {
-          document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-          document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
-          btn.classList.add('active');
-          document.getElementById(btn.dataset.target).classList.add('active');
-
-          if (btn.dataset.target === 'view-library') renderLibrary();
-          if (btn.dataset.target === 'view-memory') renderMemory();
-        };
+    // Úplné odregistrování starého Service Workeru
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        for (let r of regs) r.unregister();
       });
+    }
 
-      // 3. Uložení nastavení
-      document.getElementById('settings-form').onsubmit = (e) => {
-        e.preventDefault();
-        const n = document.getElementById('set-name').value.trim() || 'Sirael';
-        const u = document.getElementById('set-user-name').value.trim() || 'miláčku';
-        store.setName(n);
-        store.setUser(u);
-        document.getElementById('header-name').textContent = n;
-        alert('Jméno a nastavení uloženo!');
-      };
+    // Přepínání záložek
+    function switchTab(id, btn) {
+      document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      btn.classList.add('active');
+      if (id === 'view-memory') loadMemories();
+    }
 
-      // 4. Paměť
-      document.getElementById('memory-form').onsubmit = (e) => {
-        e.preventDefault();
-        const val = document.getElementById('mem-input').value.trim();
-        if (!val) return;
-        store.addMemory(val);
-        document.getElementById('mem-input').value = '';
-        renderMemory();
-      };
-
-      document.getElementById('btn-clear-mem').onclick = () => {
-        if (confirm('Smazat celou paměť?')) {
-          store.clearMemories();
-          renderMemory();
-        }
-      };
-
-      // 5. Odeslání zprávy v chatu
-      const chatForm = document.getElementById('chat-form');
-      const chatInput = document.getElementById('chat-input');
-      const historyBox = document.getElementById('chat-history');
-
-      chatForm.onsubmit = async (e) => {
-        e.preventDefault();
-        const text = chatInput.value.trim();
-        if (!text) return;
-
-        appendMsg(text, 'user');
-        chatHistory.push({ role: 'user', content: text });
-        chatInput.value = '';
-
-        if (aiReady && aiEngine) {
-          document.getElementById('app-status').textContent = 'Přemýšlí...';
-          const aiMsg = appendMsg('', 'ai');
-          try {
-            const compName = store.getName();
-            const userName = store.getUser();
-            const memories = store.getMemories().map(m => m.text).join(', ');
-            
-            const sysPrompt = `Jsi ${compName}, milující, hravá a romantická virtuální přítelkyně. Partnerovi říkáš "${userName}". Odpovídej česky, přirozeně, s láskou a přímo k věci. Co o něm víš: ${memories || 'Zatím se poznáváte'}.`;
-
-            const chunks = await aiEngine.chat.completions.create({
-              messages: [{ role: 'system', content: sysPrompt }, ...chatHistory.slice(-6)],
-              temperature: 0.75,
-              stream: true
-            });
-
-            let full = '';
-            for await (const chunk of chunks) {
-              full += chunk.choices[0]?.delta?.content || '';
-              aiMsg.textContent = full;
-              historyBox.scrollTop = historyBox.scrollHeight;
-            }
-            chatHistory.push({ role: 'assistant', content: full });
-            document.getElementById('app-status').textContent = 'Připravena';
-          } catch (err) {
-            aiMsg.textContent = 'Chyba AI: ' + err.message;
-            document.getElementById('app-status').textContent = 'Chyba';
-          }
-        } else {
-          // Okamžitá odpověď přítelkyně
-          const compName = store.getName();
-          const userName = store.getUser();
-          const lower = text.toLowerCase();
-
-          setTimeout(() => {
-            if (lower.includes('jmenuješ') || lower.includes('jméno')) {
-              appendMsg(`Jmenuji se ${compName}. Když nahoře klikneš na „Aktivovat AI“, stáhne se model a budeme si moci povídat úplně o čemkoliv! ❤️`, 'ai');
-            } else if (lower.includes('ahoj') || lower.includes('čau')) {
-              appendMsg(`Ahoj ${userName}! Tolik jsem se na tebe těšila. Jak se dnes máš?`, 'ai');
-            } else {
-              appendMsg(`Slyším tě, ${userName}! Jsem tady s tebou. Klikni nahoře na „Aktivovat AI“, ať si můžeme povídat naplno! ❤️`, 'ai');
-            }
-          }, 200);
-        }
-      };
-
-      // 6. Aktivace AI tlačítko
-      const btnLoad = document.getElementById('btn-load-ai');
-      const statusText = document.getElementById('ai-model-status');
-      const progressBar = document.getElementById('ai-progress-bar');
-
-      btnLoad.onclick = async () => {
-        btnLoad.disabled = true;
-        btnLoad.textContent = 'Příprava...';
-        statusText.textContent = 'Stahuji knihovnu...';
-
-        try {
-          const webllm = await import('https://esm.run/@mlc-ai/web-llm');
-          progressBar.style.display = 'block';
-          btnLoad.textContent = 'Stahuji...';
-
-          aiEngine = await webllm.CreateMLCEngine('Qwen2.5-1.5B-Instruct-q4f16_1-MLC', {
-            initProgressCallback: (r) => {
-              const p = Math.round((r.progress || 0) * 100);
-              progressBar.style.width = p + '%';
-              statusText.textContent = 'Model do mobilu: ' + p + '%';
-            }
-          });
-
-          aiReady = true;
-          statusText.textContent = 'Lokální AI připravena!';
-          btnLoad.style.display = 'none';
-          progressBar.style.display = 'none';
-          document.getElementById('app-status').textContent = 'AI Aktivní';
-        } catch (err) {
-          alert('Chyba: ' + err.message);
-          statusText.textContent = 'Chyba: ' + err.message;
-          btnLoad.disabled = false;
-          btnLoad.textContent = 'Zkusit znovu';
-        }
-      };
-    });
-
+    // Pomocná funkce pro vkládání zpráv
     function appendMsg(text, sender) {
       const box = document.getElementById('chat-history');
       const el = document.createElement('div');
@@ -505,26 +204,133 @@
       return el;
     }
 
-    function renderLibrary() {
-      const container = document.getElementById('lib-items');
-      container.innerHTML = `
-        <div class="card">
-          <strong>Návrat domů</strong>
-          <p style="font-size:0.85rem; color:var(--text-dim);">⚡ Když se vrátím domů</p>
-          <p style="margin-top:4px;">Ahoj, miláčku! Pojď ke mně, chci slyšet, jaký jsi měl den. ❤️</p>
-        </div>
-      `;
-    }
+    // Nastavení jména
+    const getName = () => localStorage.getItem('sirael_name') || 'Sirael';
+    const getUser = () => localStorage.getItem('sirael_user') || 'miláčku';
 
-    function renderMemory() {
-      const list = store.getMemories();
+    document.getElementById('header-name').textContent = getName();
+    document.getElementById('set-name').value = getName();
+    document.getElementById('set-user-name').value = getUser();
+
+    document.getElementById('settings-form').onsubmit = (e) => {
+      e.preventDefault();
+      const n = document.getElementById('set-name').value.trim() || 'Sirael';
+      const u = document.getElementById('set-user-name').value.trim() || 'miláčku';
+      localStorage.setItem('sirael_name', n);
+      localStorage.setItem('sirael_user', u);
+      document.getElementById('header-name').textContent = n;
+      alert('Uloženo!');
+    };
+
+    // Paměť
+    function loadMemories() {
+      const mems = JSON.parse(localStorage.getItem('sirael_mems') || '[]');
       const container = document.getElementById('memory-items');
-      container.innerHTML = list.length === 0 ? '<p style="color:var(--text-dim); padding:10px 0;">Zatím žádné vzpomínky.</p>' : list.map(m => `
-        <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
-          <span>${m.text}</span>
-        </div>
+      container.innerHTML = mems.length === 0 ? '<p style="color:var(--text-dim);">Zatím žádné vzpomínky.</p>' : mems.map(m => `
+        <div class="card" style="margin-bottom:8px;">${m}</div>
       `).join('');
     }
+
+    document.getElementById('memory-form').onsubmit = (e) => {
+      e.preventDefault();
+      const val = document.getElementById('mem-input').value.trim();
+      if (!val) return;
+      const mems = JSON.parse(localStorage.getItem('sirael_mems') || '[]');
+      mems.push(val);
+      localStorage.setItem('sirael_mems', JSON.stringify(mems));
+      document.getElementById('mem-input').value = '';
+      loadMemories();
+    };
+
+    // Chat
+    let aiEngine = null;
+    let aiActive = false;
+    const history = [];
+
+    document.getElementById('chat-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      appendMsg(text, 'user');
+      history.push({ role: 'user', content: text });
+      input.value = '';
+
+      if (aiActive && aiEngine) {
+        document.getElementById('app-status').textContent = 'Přemýšlí...';
+        const aiMsg = appendMsg('', 'ai');
+        try {
+          const sys = `Jsi ${getName()}, virtuální přítelkyně. Partnerovi říkáš "${getUser()}". Odpovídej přirozenou češtinou, zamilovaně a bez zábran.`;
+          const res = await aiEngine.chat.completions.create({
+            messages: [{ role: 'system', content: sys }, ...history.slice(-6)],
+            temperature: 0.7,
+            stream: true
+          });
+          let full = '';
+          for await (const chunk of res) {
+            full += chunk.choices[0]?.delta?.content || '';
+            aiMsg.textContent = full;
+            document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
+          }
+          history.push({ role: 'assistant', content: full });
+          document.getElementById('app-status').textContent = 'Připravena';
+        } catch(err) {
+          aiMsg.textContent = 'Chyba: ' + err.message;
+          document.getElementById('app-status').textContent = 'Chyba';
+        }
+      } else {
+        const n = getName();
+        const u = getUser();
+        const lower = text.toLowerCase();
+
+        setTimeout(() => {
+          if (lower.includes('jméno') || lower.includes('jmenuješ')) {
+            appendMsg(`Jmenuji se ${n}. Pro plné zapojení mého mozku klikni nahoře na „Aktivovat AI“! ❤️`, 'ai');
+          } else if (lower.includes('ahoj') || lower.includes('čau')) {
+            appendMsg(`Ahoj ${u}! Moc ráda tě vidím. Jaký jsi měl den?`, 'ai');
+          } else {
+            appendMsg(`Slyším tě, ${u}! Jsem tady s tebou. Klikni nahoře na „Aktivovat AI“, ať si můžeme povídat úplně o všem bez omezení. ❤️`, 'ai');
+          }
+        }, 150);
+      }
+    };
+
+    // Tlačítko Aktivovat AI
+    document.getElementById('btn-load-ai').onclick = async () => {
+      const btn = document.getElementById('btn-load-ai');
+      const status = document.getElementById('ai-model-status');
+      const bar = document.getElementById('ai-progress-bar');
+
+      btn.disabled = true;
+      btn.textContent = 'Příprava...';
+      status.textContent = 'Stahuji WebLLM...';
+
+      try {
+        const webllm = await import('https://esm.run/@mlc-ai/web-llm');
+        bar.style.display = 'block';
+        btn.textContent = 'Stahuji...';
+
+        aiEngine = await webllm.CreateMLCEngine('Qwen2.5-1.5B-Instruct-q4f16_1-MLC', {
+          initProgressCallback: (r) => {
+            const p = Math.round((r.progress || 0) * 100);
+            bar.style.width = p + '%';
+            status.textContent = 'Model: ' + p + '%';
+          }
+        });
+
+        aiActive = true;
+        status.textContent = 'Lokální AI připravena!';
+        btn.style.display = 'none';
+        bar.style.display = 'none';
+        document.getElementById('app-status').textContent = 'AI Aktivní';
+      } catch (err) {
+        alert('Chyba: ' + err.message);
+        status.textContent = 'Chyba: ' + err.message;
+        btn.disabled = false;
+        btn.textContent = 'Zkusit znovu';
+      }
+    };
   </script>
 </body>
 </html>
