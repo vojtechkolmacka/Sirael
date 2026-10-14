@@ -1,310 +1,353 @@
-let currentName = 'Sirael';
-let deferredPrompt = null;
+import { dbInstance } from './storage/db.js';
+import { settingsService } from './settings/settingsService.js';
+import { responseLibraryService, CATEGORIES } from './library/responseLibraryService.js';
+import { memoryService } from './memory/memoryService.js';
+import { aiService } from './ai/aiService.js';
 
-// Registrace Service Workeru pro PWA
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch((err) => console.log('SW reg error:', err));
-  });
-}
-
-// Obsluha instalace PWA tlačítkem
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  const btn = document.getElementById('btnInstallPwa');
-  if (btn) btn.style.display = 'block';
-});
-
-document.addEventListener('DOMContentLoaded', async () => {
-  await window.appDb.init();
-  await loadInitialSettings();
-  await ensureDefaultLibraryItem();
-  setupNavigation();
-  setupChat();
-  setupLibrary();
-  setupMemory();
-  setupSettingsUI();
-});
-
-// --- Načtení nastavení & Výchozí stav ---
-async function loadInitialSettings() {
-  const savedName = await window.appDb.getSetting('companionName', 'Sirael');
-  currentName = savedName;
-  updateNameUI(currentName);
-
-  const userNick = await window.appDb.getSetting('userNick', '');
-  const inputNick = document.getElementById('settingUserNick');
-  if (inputNick) inputNick.value = userNick;
-}
-
-function updateNameUI(name) {
-  document.getElementById('headerName').textContent = name;
-  document.getElementById('displayHeroName').textContent = name;
-  document.getElementById('settingNameInput').value = name;
-}
-
-// Zajištění výchozí položky dle požadavku v zadání
-async function ensureDefaultLibraryItem() {
-  const hasSeeded = await window.appDb.getSetting('hasSeededDefaultLib', false);
-  if (!hasSeeded) {
-    await window.appDb.saveLibraryItem({
-      title: 'Návrat domů',
-      trigger: 'Když se vrátím domů',
-      category: 'Flirt',
-      response: 'Ahoj, miláčku! Pojď ke mně, chci slyšet, jaký jsi měl den. ❤️',
-      tags: ['příchod', 'domov', 'uvítání']
-    });
-    await window.appDb.setSetting('hasSeededDefaultLib', true);
-  }
-}
-
-// --- Navigace mezi záložkami ---
-function setupNavigation() {
-  const navBtns = document.querySelectorAll('.nav-btn');
-  navBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      navBtns.forEach((b) => b.classList.remove('active'));
-      document.querySelectorAll('.view').forEach((v) => v.classList.remove('active'));
-
-      btn.classList.add('active');
-      const targetId = btn.getAttribute('data-view');
-      document.getElementById(targetId).classList.add('active');
-
-      if (targetId === 'view-library') renderLibrary();
-      if (targetId === 'view-memory') renderMemory();
-    });
-  });
-}
-
-// --- Chat simulace s napojením na Knihovnu ---
-function setupChat() {
-  const btnSend = document.getElementById('btnSend');
-  const chatInput = document.getElementById('chatInput');
-
-  // Počáteční uvítací zpráva
-  appendMessage(currentName, `Ahoj, jsem tady s tebou. Na co máš chuť?`, 'sirael');
-
-  async function handleSend() {
-    const text = chatInput.value.trim();
-    if (!text) return;
-
-    appendMessage('Ty', text, 'user');
-    chatInput.value = '';
-
-    // Vyhledání shody v knihovně pro 1. etapu
-    const libItems = await window.appDb.getAllLibraryItems();
-    const query = text.toLowerCase();
-    const match = libItems.find(item => 
-      (item.trigger && query.includes(item.trigger.toLowerCase())) || 
-      (item.title && query.includes(item.title.toLowerCase()))
-    );
-
-    setTimeout(() => {
-      if (match) {
-        appendMessage(currentName, match.response, 'sirael');
-      } else {
-        appendMessage(currentName, `Slyším tě. V další etapě sem připojíme lokální AI model!`, 'sirael');
-      }
-    }, 400);
+class SiraelApp {
+  constructor() {
+    this.history = [];
   }
 
-  btnSend.addEventListener('click', handleSend);
-  chatInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') handleSend();
-  });
-}
+  async init() {
+    await dbInstance.init();
+    await settingsService.load();
+    await responseLibraryService.initDefaultItem();
 
-function appendMessage(sender, text, type) {
-  const box = document.getElementById('chatHistory');
-  const msg = document.createElement('div');
-  msg.className = `msg ${type}`;
-  msg.textContent = text;
-  box.appendChild(msg);
-  box.scrollTop = box.scrollHeight;
-}
+    this.registerServiceWorker();
+    this.renderHeader();
+    this.bindNavigation();
+    this.bindSettingsForm();
+    this.bindLibrary();
+    this.bindMemory();
+    this.bindAI();
+    this.bindChat();
+  }
 
-// --- Knihovna Odpovědí (CRUD) ---
-function setupLibrary() {
-  const modal = document.getElementById('modalNewItem');
-  document.getElementById('btnOpenNewItemModal').addEventListener('click', () => {
-    modal.style.display = 'block';
-  });
-  document.getElementById('btnCancelNewItem').addEventListener('click', () => {
-    modal.style.display = 'none';
-  });
-
-  document.getElementById('btnSaveNewItem').addEventListener('click', async () => {
-    const title = document.getElementById('newTitle').value.trim();
-    const trigger = document.getElementById('newTrigger').value.trim();
-    const category = document.getElementById('newCategory').value;
-    const response = document.getElementById('newResponse').value.trim();
-
-    if (!title || !response) {
-      alert('Vyplň prosím název a odpověď.');
-      return;
+  registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch((err) => {
+        console.warn('SW registrace selhala:', err);
+      });
     }
+  }
 
-    await window.appDb.saveLibraryItem({ title, trigger, category, response, tags: [] });
-    // Vyčištění formuláře
-    document.getElementById('newTitle').value = '';
-    document.getElementById('newTrigger').value = '';
-    document.getElementById('newResponse').value = '';
-    modal.style.display = 'none';
-    renderLibrary();
-  });
+  renderHeader() {
+    const name = settingsService.get('companionName');
+    document.getElementById('header-name').textContent = name;
+  }
 
-  // Filtrování a vyhledávání
-  document.getElementById('libSearch').addEventListener('input', renderLibrary);
-  document.getElementById('libFilterCategory').addEventListener('change', renderLibrary);
+  bindAI() {
+    const btnLoad = document.getElementById('btn-load-ai');
+    const statusText = document.getElementById('ai-model-status');
+    const progressBar = document.getElementById('ai-progress-bar');
+    const appStatus = document.getElementById('app-status');
 
-  // Export do JSON
-  document.getElementById('btnExportLib').addEventListener('click', async () => {
-    const items = await window.appDb.getAllLibraryItems();
-    const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `sirael_knihovna_${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-  });
+    btnLoad.onclick = async () => {
+      const gpu = await aiService.checkWebGPUSupport();
+      if (!gpu.supported) {
+        alert('WebGPU není v tomto prohlížeči dostupné: ' + gpu.reason);
+        return;
+      }
 
-  // Import z JSON
-  document.getElementById('fileImportLib').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+      btnLoad.disabled = true;
+      btnLoad.textContent = 'Stahuji...';
+      progressBar.style.display = 'block';
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
       try {
-        const imported = JSON.parse(event.target.result);
-        if (Array.isArray(imported)) {
-          for (const item of imported) {
-            delete item.id; // Přidělit nové ID
-            await window.appDb.saveLibraryItem(item);
-          }
-          alert('Knihovna byla úspěšně importována.');
-          renderLibrary();
-        }
+        await aiService.initModel((report) => {
+          const pct = Math.round((report.progress || 0) * 100);
+          progressBar.style.width = `${pct}%`;
+          statusText.textContent = `Příprava AI: ${pct}%`;
+        });
+
+        statusText.textContent = 'Lokální AI připravena (WebGPU)';
+        btnLoad.style.display = 'none';
+        progressBar.style.display = 'none';
+        appStatus.textContent = 'Aktivní (Lokální AI)';
       } catch (err) {
-        alert('Neplatný formát JSON souboru.');
+        statusText.textContent = 'Chyba načítání AI';
+        btnLoad.disabled = false;
+        btnLoad.textContent = 'Zkusit znovu';
+        alert('Chyba při startu lokální AI: ' + err.message);
       }
     };
-    reader.readAsText(file);
-  });
-}
-
-async function renderLibrary() {
-  const container = document.getElementById('libraryList');
-  container.innerHTML = '';
-
-  const search = document.getElementById('libSearch').value.toLowerCase();
-  const filterCat = document.getElementById('libFilterCategory').value;
-  const items = await window.appDb.getAllLibraryItems();
-
-  const filtered = items.filter(item => {
-    const matchSearch = item.title.toLowerCase().includes(search) || 
-                        item.response.toLowerCase().includes(search) ||
-                        (item.trigger && item.trigger.toLowerCase().includes(search));
-    const matchCat = filterCat === '' || item.category === filterCat;
-    return matchSearch && matchCat;
-  });
-
-  if (filtered.length === 0) {
-    container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 20px;">Žádné položky nenalezeny.</p>';
-    return;
   }
 
-  filtered.forEach(item => {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <div class="card-header">
-        <strong>${item.title}</strong>
-        <span class="badge">${item.category}</span>
-      </div>
-      <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px;">Spouštěč: ${item.trigger || '—'}</div>
-      <div style="font-size: 0.95rem; margin-bottom: 10px;">${item.response}</div>
-      <div style="text-align: right;">
-        <button class="secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="deleteLibItem(${item.id})">Smazat</button>
-      </div>
-    `;
-    container.appendChild(card);
-  });
-}
+  bindNavigation() {
+    const buttons = document.querySelectorAll('.nav-btn');
+    const views = document.querySelectorAll('.tab-view');
 
-window.deleteLibItem = async (id) => {
-  if (confirm('Opravdu smazat tuto položku?')) {
-    await window.appDb.deleteLibraryItem(id);
-    renderLibrary();
-  }
-};
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        buttons.forEach((b) => b.classList.remove('active'));
+        views.forEach((v) => v.classList.remove('active'));
 
-// --- Paměť ---
-function setupMemory() {
-  document.getElementById('btnSaveMemory').addEventListener('click', async () => {
-    const input = document.getElementById('memFactInput');
-    const fact = input.value.trim();
-    if (!fact) return;
+        btn.classList.add('active');
+        const targetView = document.getElementById(btn.dataset.target);
+        if (targetView) targetView.classList.add('active');
 
-    await window.appDb.saveMemoryItem({ fact, type: 'fact' });
-    input.value = '';
-    renderMemory();
-  });
-}
-
-async function renderMemory() {
-  const container = document.getElementById('memoryList');
-  container.innerHTML = '';
-  const items = await window.appDb.getAllMemory();
-
-  if (items.length === 0) {
-    container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 15px;">Zatím žádné vzpomínky.</p>';
-    return;
+        if (btn.dataset.target === 'view-library') this.renderLibraryList();
+        if (btn.dataset.target === 'view-memory') this.renderMemoryList();
+        if (btn.dataset.target === 'view-settings') this.fillSettingsForm();
+      });
+    });
   }
 
-  items.forEach(item => {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.style.display = 'flex';
-    card.style.justifyContent = 'space-between';
-    card.style.alignItems = 'center';
-    card.innerHTML = `
-      <span>${item.fact}</span>
-      <button class="secondary" style="padding: 4px 8px; font-size: 0.8rem;" onclick="deleteMemItem(${item.id})">✕</button>
-    `;
-    container.appendChild(card);
-  });
+  fillSettingsForm() {
+    const s = settingsService.getAll();
+    document.getElementById('set-name').value = s.companionName;
+    document.getElementById('set-alt-names').value = s.alternativeNames;
+    document.getElementById('set-pronounce').value = s.pronunciation;
+    document.getElementById('set-user-name').value = s.userName;
+    document.getElementById('set-romance').value = s.romanceLevel;
+    document.getElementById('set-flirt').value = s.flirtLevel;
+  }
+
+  bindSettingsForm() {
+    document.getElementById('settings-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await settingsService.update('companionName', document.getElementById('set-name').value.trim() || 'Sirael');
+      await settingsService.update('alternativeNames', document.getElementById('set-alt-names').value.trim());
+      await settingsService.update('pronunciation', document.getElementById('set-pronounce').value.trim());
+      await settingsService.update('userName', document.getElementById('set-user-name').value.trim());
+      await settingsService.update('romanceLevel', Number(document.getElementById('set-romance').value));
+      await settingsService.update('flirtLevel', Number(document.getElementById('set-flirt').value));
+
+      this.renderHeader();
+      alert('Nastavení uloženo.');
+    });
+  }
+
+  async renderLibraryList() {
+    const query = document.getElementById('lib-search').value;
+    const cat = document.getElementById('lib-filter-cat').value;
+    const items = await responseLibraryService.search(query, cat);
+    const container = document.getElementById('lib-items');
+
+    container.innerHTML = items.length === 0 
+      ? '<p style="color:var(--text-dim); text-align:center; padding:20px;">Žádné odpovědi nenalezeny.</p>'
+      : items.map((item) => `
+        <div class="card" data-id="${item.id}">
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+            <strong>${item.title}</strong>
+            <span class="badge">${item.category}</span>
+          </div>
+          <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:6px;">⚡ ${item.trigger}</p>
+          <p style="font-size:0.95rem; margin-bottom:8px;">${item.response}</p>
+          <div class="btn-group">
+            <button class="btn btn-secondary btn-sm edit-lib" data-id="${item.id}">Upravit</button>
+            <button class="btn btn-danger btn-sm del-lib" data-id="${item.id}">Smazat</button>
+          </div>
+        </div>
+      `).join('');
+
+    container.querySelectorAll('.del-lib').forEach((b) => {
+      b.onclick = async () => {
+        if (confirm('Opravdu smazat tuto odpověď?')) {
+          await responseLibraryService.deleteItem(b.dataset.id);
+          this.renderLibraryList();
+        }
+      };
+    });
+
+    container.querySelectorAll('.edit-lib').forEach((b) => {
+      b.onclick = async () => {
+        const item = (await responseLibraryService.getAll()).find((i) => i.id == b.dataset.id);
+        if (!item) return;
+        document.getElementById('modal-lib-id').value = item.id;
+        document.getElementById('modal-lib-title').value = item.title;
+        document.getElementById('modal-lib-trigger').value = item.trigger;
+        document.getElementById('modal-lib-response').value = item.response;
+        document.getElementById('modal-lib-cat').value = item.category;
+        document.getElementById('modal-lib-tags').value = item.tags || '';
+        document.getElementById('modal-lib-variants').value = (item.variants || []).join('\n');
+        document.getElementById('lib-modal').style.display = 'block';
+      };
+    });
+  }
+
+  bindLibrary() {
+    const catSelects = [document.getElementById('lib-filter-cat'), document.getElementById('modal-lib-cat')];
+    catSelects.forEach((select) => {
+      CATEGORIES.forEach((c) => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        select.appendChild(opt);
+      });
+    });
+
+    document.getElementById('lib-search').addEventListener('input', () => this.renderLibraryList());
+    document.getElementById('lib-filter-cat').addEventListener('change', () => this.renderLibraryList());
+
+    document.getElementById('btn-add-lib').onclick = () => {
+      document.getElementById('lib-form').reset();
+      document.getElementById('modal-lib-id').value = '';
+      document.getElementById('lib-modal').style.display = 'block';
+    };
+
+    document.getElementById('btn-close-modal').onclick = () => {
+      document.getElementById('lib-modal').style.display = 'none';
+    };
+
+    document.getElementById('lib-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('modal-lib-id').value;
+      const data = {
+        title: document.getElementById('modal-lib-title').value.trim(),
+        trigger: document.getElementById('modal-lib-trigger').value.trim(),
+        response: document.getElementById('modal-lib-response').value.trim(),
+        category: document.getElementById('modal-lib-cat').value,
+        tags: document.getElementById('modal-lib-tags').value.trim(),
+        variants: document.getElementById('modal-lib-variants').value
+      };
+
+      if (id) {
+        await responseLibraryService.updateItem({ ...data, id: Number(id) });
+      } else {
+        await responseLibraryService.addItem(data);
+      }
+      document.getElementById('lib-modal').style.display = 'none';
+      this.renderLibraryList();
+    };
+
+    document.getElementById('btn-export-lib').onclick = async () => {
+      const dataStr = await responseLibraryService.exportJSON();
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sirael_odpovedi_${Date.now()}.json`;
+      a.click();
+    };
+
+    document.getElementById('lib-file-import').onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      try {
+        const count = await responseLibraryService.importJSON(text);
+        alert(`Úspěšně importováno ${count} nových odpovědí.`);
+        this.renderLibraryList();
+      } catch (err) {
+        alert('Chyba při importu: ' + err.message);
+      }
+    };
+  }
+
+  async renderMemoryList() {
+    const list = await memoryService.getAll();
+    const container = document.getElementById('memory-items');
+    container.innerHTML = list.length === 0
+      ? '<p style="color:var(--text-dim); text-align:center; padding:20px;">Žádné vzpomínky zatím nejsou uloženy.</p>'
+      : list.map((m) => `
+        <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <span class="badge">${m.type}</span>
+            <span style="font-size:0.95rem;">${m.content}</span>
+          </div>
+          <button class="btn btn-danger btn-sm" style="width:auto; padding:4px 8px;" data-id="${m.id}">×</button>
+        </div>
+      `).join('');
+
+    container.querySelectorAll('button').forEach((b) => {
+      b.onclick = async () => {
+        await memoryService.deleteMemory(b.dataset.id);
+        this.renderMemoryList();
+      };
+    });
+  }
+
+  bindMemory() {
+    document.getElementById('memory-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('mem-input');
+      const val = input.value.trim();
+      if (!val) return;
+      await memoryService.addMemory(val, 'fact');
+      input.value = '';
+      this.renderMemoryList();
+    };
+
+    document.getElementById('btn-clear-mem').onclick = async () => {
+      if (confirm('Opravdu smazat celou paměť?')) {
+        await memoryService.clearAll();
+        this.renderMemoryList();
+      }
+    };
+  }
+
+  bindChat() {
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('chat-input');
+    const appStatus = document.getElementById('app-status');
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+
+      this.appendMsg(text, 'user');
+      this.history.push({ role: 'user', content: text });
+      input.value = '';
+
+      if (aiService.isReady) {
+        appStatus.textContent = 'Přemýšlí...';
+        const aiMsgElement = this.appendMsg('', 'ai');
+
+        try {
+          const settings = settingsService.getAll();
+          const memories = await memoryService.getAll();
+          const libraryExamples = await responseLibraryService.findRelevantContext(text, 2);
+
+          const systemPrompt = aiService.buildSystemPrompt(settings, memories, libraryExamples);
+
+          const fullReply = await aiService.generateResponse(
+            this.history.slice(-6),
+            systemPrompt,
+            (delta, currentFull) => {
+              aiMsgElement.textContent = currentFull;
+              document.getElementById('chat-history').scrollTop = document.getElementById('chat-history').scrollHeight;
+            }
+          );
+
+          this.history.push({ role: 'assistant', content: fullReply });
+          appStatus.textContent = 'Připravena';
+        } catch (err) {
+          aiMsgElement.textContent = 'Došlo k chybě: ' + err.message;
+          appStatus.textContent = 'Chyba';
+        }
+      } else {
+        const matched = await responseLibraryService.findRelevantContext(text, 1);
+        const name = settingsService.get('companionName');
+        const user = settingsService.get('userName') || 'miláčku';
+
+        setTimeout(() => {
+          if (text.toLowerCase().includes('jmenuješ') || text.toLowerCase().includes('jméno')) {
+            this.appendMsg(`Jmenuji se ${name}. Klikni nahoře na „Aktivovat AI“, ať si můžeme povídat úplně o všem bez šablon!`, 'ai');
+          } else if (matched.length > 0) {
+            this.appendMsg(matched[0].response.replace(/miláčku/g, user), 'ai');
+          } else {
+            this.appendMsg(`Jsem tady s tebou, ${user}! Aktivuj prosím nahoře tlačítkem lokální AI model pro volnou konverzaci.`, 'ai');
+          }
+        }, 200);
+      }
+    };
+  }
+
+  appendMsg(text, sender) {
+    const history = document.getElementById('chat-history');
+    const msg = document.createElement('div');
+    msg.className = `msg ${sender}`;
+    msg.textContent = text;
+    history.appendChild(msg);
+    history.scrollTop = history.scrollHeight;
+    return msg;
+  }
 }
 
-window.deleteMemItem = async (id) => {
-  await window.appDb.deleteMemoryItem(id);
-  renderMemory();
-};
-
-// --- Nastavení UI ---
-function setupSettingsUI() {
-  document.getElementById('btnSaveSettings').addEventListener('click', async () => {
-    const newName = document.getElementById('settingNameInput').value.trim();
-    const newNick = document.getElementById('settingUserNick').value.trim();
-
-    if (newName) {
-      currentName = newName;
-      await window.appDb.setSetting('companionName', currentName);
-      updateNameUI(currentName);
-    }
-    if (newNick) {
-      await window.appDb.setSetting('userNick', newNick);
-    }
-    alert('Nastavení uloženo.');
-  });
-
-  const btnPwa = document.getElementById('btnInstallPwa');
-  btnPwa.addEventListener('click', async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      deferredPrompt = null;
-      btnPwa.style.display = 'none';
-    }
-  });
-}
+window.addEventListener('DOMContentLoaded', () => {
+  const app = new SiraelApp();
+  app.init();
+});
