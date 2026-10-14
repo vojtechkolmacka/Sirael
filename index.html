@@ -7,6 +7,21 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ff4d6d">
   <link rel="stylesheet" href="css/app.css">
+  <style>
+    /* Zajištění správného zobrazení i při výpadku externího CSS */
+    :root {
+      --bg-main: #0f1015;
+      --bg-card: #181920;
+      --bg-input: #232530;
+      --accent: #ff4d6d;
+      --text-main: #f0f0f5;
+      --text-dim: #9092a0;
+      --border: #2e303e;
+    }
+    body { background-color: var(--bg-main); color: var(--text-main); margin: 0; font-family: sans-serif; }
+    .tab-view { display: none; padding: 16px; }
+    .tab-view.active { display: block; }
+  </style>
 </head>
 <body>
 
@@ -14,7 +29,7 @@
     <div class="avatar-badge">
       <div class="avatar-circle">💋</div>
       <div>
-        <h2 id="header-name" style="font-size:1.1rem;">Sirael</h2>
+        <h2 id="header-name" style="font-size:1.1rem; margin:0;">Sirael</h2>
         <div class="status-indicator">
           <span class="status-dot"></span>
           <span id="app-status">Připravena</span>
@@ -23,19 +38,19 @@
     </div>
   </header>
 
-  <!-- LIŠTA STAVU MODELU POD HLAVIČKOU S DIAGNOSTIKOU -->
-  <div id="ai-status-banner" style="background:#1f212d; border-bottom:1px solid var(--border); padding:8px 16px; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center; width:100%;">
-    <span id="ai-model-status">Lokální model nepřipojen</span>
-    <button id="btn-load-ai" class="btn" style="width:auto; padding:6px 14px; font-size:0.8rem; margin:0; z-index:10;" onclick="spustitTestAI()">Aktivovat AI</button>
+  <!-- LIŠTA STAVU MODELU -->
+  <div id="ai-status-banner" style="background:#181920; border-bottom:1px solid var(--border); padding:10px 16px; font-size:0.85rem; display:flex; justify-content:space-between; align-items:center;">
+    <span id="ai-model-status" style="color:var(--text-dim);">Lokální model nepřipojen</span>
+    <button id="btn-load-ai" class="btn" style="width:auto; padding:6px 14px; font-size:0.8rem; margin:0;">Aktivovat AI</button>
   </div>
-  <div id="ai-progress-bar" style="display:none; height:3px; background:var(--accent); width:0%; transition:width 0.2s;"></div>
+  <div id="ai-progress-bar" style="display:none; height:4px; background:var(--accent); width:0%; transition:width 0.2s;"></div>
 
   <main>
     <!-- ZÁLOŽKA 1: CHAT -->
     <section id="view-chat" class="tab-view active">
       <div class="chat-container">
         <div id="chat-history" class="chat-history">
-          <div class="msg ai">Ahoj! Jsem ráda, že jsme spolu. Můžeš si v nastavení upravit mé jméno, prozkoumat mou paměť nebo přidat nové reakce do knihovny. ❤️</div>
+          <div class="msg ai">Ahoj! Jsem ráda, že jsme spolu. Můžeš nahoře kliknout na „Aktivovat AI“ a začít se mnou volně mluvit! ❤️</div>
         </div>
         <form id="chat-form" class="chat-input-bar">
           <input type="text" id="chat-input" placeholder="Napiš zprávu..." autocomplete="off">
@@ -171,38 +186,6 @@
       Nastavení
     </button>
   </nav>
-
-  <!-- PŘÍMÝ DIAGNOSTICKÝ SKRIPT -->
-  <script>
-    async function spustitTestAI() {
-      alert("1. Tlačítko reaguje! Spouštím diagnostiku...");
-
-      if (!navigator.gpu) {
-        alert("CHYBA: Tento prohlížeč vůbec nepodporuje WebGPU.\n\nŘešení v mobilním Chromu: Do adresního řádku napiš chrome://flags, vyhledej 'webgpu' a nastav na Enabled.");
-        return;
-      }
-
-      try {
-        const adapter = await navigator.gpu.requestAdapter();
-        if (!adapter) {
-          alert("CHYBA: WebGPU je přítomno, ale nenašlo vhodný grafický čip na tvém mobilu.");
-          return;
-        }
-        alert("2. Skvělé! WebGPU je aktivní a grafický čip byl úspěšně nalezen!");
-      } catch (err) {
-        alert("CHYBA při zjišťování grafického čipu: " + err.message);
-        return;
-      }
-
-      alert("3. Testuji připojení a stahování AI knihovny (WebLLM)...");
-      try {
-        const webllm = await import('https://esm.run/@mlc-ai/web-llm');
-        alert("4. Knihovna úspěšně načtena! Vše je připraveno pro stažení modelu.");
-      } catch (err) {
-        alert("CHYBA při stahování knihovny z internetu: " + err.message);
-      }
-    }
-  </script>
 
   <script type="module" src="src/app.js"></script>
 </body>
